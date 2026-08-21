@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}设置 · Anko Director{% endblock %}
+{% block content %}
+<section class="page-content settings-page">
+  <header class="page-heading"><div><h1>设置</h1><p>模型配置保存在本机，密钥优先进入系统凭据库。</p></div></header>
+  <div class="settings-grid">
+    <form id="settings-form" class="settings-section">
+      <div class="section-title"><h2>AI 提供商</h2><span>小模型传参，主模型写作</span></div>
+      <label>厂商<select name="provider">{% for name in ['openai','anthropic','poe'] %}<option value="{{ name }}" {{ 'selected' if settings.provider.provider == name else '' }}>{{ name|upper }}</option>{% endfor %}</select></label>
+      <label>传参小模型<input name="parameter_model" value="{{ settings.provider.parameter_model }}" required></label>
+      <label>故事模型<input name="story_model" value="{{ settings.provider.story_model }}" required></label>
+      <label>自定义 Base URL<input name="base_url" value="{{ settings.provider.base_url or '' }}" placeholder="通常留空"></label>
+      <button type="submit" class="primary">保存模型设置</button>
+    </form>
+    <section class="settings-section">
+      <div class="section-title"><h2>凭据</h2><span>不会写入故事存档</span></div>
+      {% for key, label in [('openai_api_key','OpenAI API Key'),('anthropic_api_key','Claude API Key'),('poe_api_key','Poe API Key'),('discord_bot_token','Discord Bot Token')] %}
+      <form class="secret-form" data-secret="{{ key }}"><label>{{ label }}<input type="password" name="value" autocomplete="off" placeholder="{{ '已配置 · 输入新值可替换' if settings.secrets[key] else '尚未配置' }}"></label><button type="submit">保存</button></form>
+      {% endfor %}
+      <p class="field-hint">Discord Token 更新后需重启程序，并在开发者后台开启 Message Content Intent。</p>
+    </section>
+    <section class="settings-section">
+      <div class="section-title"><h2>连接状态</h2><span class="connection {{ 'online' if discord_ready else '' }}">{{ 'Discord 已连接' if discord_ready else 'Discord 未连接' }}</span></div>
+      <dl class="setting-list"><div><dt>本地服务</dt><dd>127.0.0.1:{{ settings.port }}</dd></div><div><dt>主题</dt><dd>跟随系统 · 米色 / 黑色</dd></div><div><dt>投骰确认</dt><dd>两次 Enter</dd></div></dl>
+    </section>
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+document.querySelector('#settings-form').addEventListener('submit', async (event) => {
+  event.preventDefault(); const data = Object.fromEntries(new FormData(event.target));
+  await api('/api/settings', {method:'PUT', body:JSON.stringify({provider:data})}); toast('模型设置已保存。');
+});
+document.querySelectorAll('.secret-form').forEach((form) => form.addEventListener('submit', async (event) => {
+  event.preventDefault(); const value = new FormData(form).get('value');
+  const result = await api(`/api/secrets/${form.dataset.secret}`, {method:'PUT', body:JSON.stringify({value})});
+  form.reset(); toast(result.restart_required ? '已保存，重启后 Discord 生效。' : '凭据已保存。');
+}));
+</script>
+{% endblock %}

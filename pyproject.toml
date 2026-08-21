@@ -1,0 +1,62 @@
+[project]
+name = "anko-director"
+version = "0.7.0"
+description = "Local AI-assisted Anko game director with auditable dice and Discord sync"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = "PolyForm-Noncommercial-1.0.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Anko Director contributors" }]
+keywords = ["anko", "tabletop-rpg", "coc7", "local-first", "discord", "ai"]
+dependencies = [
+  "discord.py>=2.5,<3",
+  "fastapi>=0.116,<1",
+  "httpx>=0.28,<1",
+  "jinja2>=3.1,<4",
+  "keyring>=25.6,<26",
+  "platformdirs>=4.3,<5",
+  "pydantic>=2.11,<3",
+  "python-multipart>=0.0.20,<1",
+  "uvicorn[standard]>=0.35,<1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "hypothesis>=6.135,<7",
+  "pyinstaller>=6.14,<7",
+  "pytest>=8.4,<9",
+  "pytest-asyncio>=1.0,<2",
+  "ruff>=0.12,<1",
+]
+
+[project.scripts]
+anko-director = "anko_director.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/chaoyian/anko-director"
+Repository = "https://github.com/chaoyian/anko-director"
+Issues = "https://github.com/chaoyian/anko-director/issues"
+Changelog = "https://github.com/chaoyian/anko-director/blob/main/CHANGELOG.md"
+
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "_anko_build_backend"
+backend-path = ["."]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"anko_director.web" = ["templates/*.html", "static/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

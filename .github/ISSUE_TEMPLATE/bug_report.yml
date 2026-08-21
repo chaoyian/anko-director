@@ -1,0 +1,48 @@
+name: Bug report
+description: Report a reproducible defect using synthetic data
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Do not include API keys, tokens, personal campaign databases, or private logs."
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      placeholder: v0.7.0
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options: ["Windows x64", "Linux x64", "macOS Apple Silicon", "macOS Intel", "Source installation"]
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Use synthetic campaign content only.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Data safety
+      options:
+        - label: I removed credentials and personal campaign data from this report.
+          required: true

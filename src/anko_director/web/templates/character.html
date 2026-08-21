@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}{{ asset.name }} · 人物资产{% endblock %}
+{% block project_title %}{{ campaign.title }}{% endblock %}
+{% block content %}
+<div class="character-overlay">
+  <section class="character-window" role="dialog" aria-modal="true" aria-labelledby="character-title">
+    <header class="character-window-head">
+      <div><span class="character-kicker">人物资产</span><h1 id="character-title">{{ asset.name }}</h1><p>投骰只写入这张人物卡；正文与记忆不会被覆盖。</p></div>
+      <a class="character-close" href="/campaigns/{{ campaign.id }}" aria-label="关闭人物卡">×</a>
+    </header>
+
+    <nav class="character-tabs four-tabs" aria-label="人物卡页面">
+      <button type="button" class="active" data-tab="profile"><span>人物资料</span><small>设定与正文</small></button>
+      <button type="button" data-tab="abilities"><span>属性与特质</span><small>手填或投骰</small></button>
+      <button type="button" data-tab="memories"><span>角色记忆</span><small>{{ memories|length }} 条主观记忆</small></button>
+      <button type="button" data-tab="combat"><span>COC 战斗</span><small>HP、护甲与状态</small></button>
+    </nav>
+
+    <div class="character-window-body">
+      <section class="character-tab-panel active" data-panel="profile">
+        <form class="profile-card" id="profile-form">
+          <div class="section-title"><h2>人物资料</h2><span>完整内容会随人物引用交给 AI</span></div>
+          <div class="editor-row"><label>名称<input name="name" value="{{ asset.name }}" required></label><label>颜色<input name="color" type="color" value="{{ asset.color }}"></label></div>
+          <label>摘要<input name="summary" value="{{ asset.summary }}" maxlength="2000"></label>
+          <label>正文<textarea name="body" rows="14">{{ asset.body }}</textarea></label>
+          <footer><span>导演手写正文不会被投骰结果覆盖</span><button class="primary" type="submit">保存人物资料</button></footer>
+        </form>
+      </section>
+
+      <section class="character-tab-panel" data-panel="abilities" hidden>
+        <section class="character-template-bar">
+          <div><strong>快速建卡</strong><span>选择模板后可直接一次生成；已有自定义卡也能只补缺项。</span></div>
+          <label>模板<select id="character-template">{% for template in templates %}<option value="{{ template.id }}">{{ template.name }}</option>{% endfor %}</select></label>
+          <label class="check-label replace-template"><input type="checkbox" id="replace-template" checked>替换当前属性</label>
+          <button type="button" id="apply-template">只套用</button>
+          <button type="button" class="primary" id="apply-template-roll">套用并一次投完</button>
+        </section>
+        <div class="ability-toolbar"><div><h2>人物属性</h2><p>改完后统一保存；⌘/Ctrl+S 也可保存全部。</p></div><div class="ability-actions"><input id="stat-filter" type="search" placeholder="筛选属性"><span id="stat-dirty" hidden>有未保存修改</span><button type="button" id="save-all-stats">保存全部</button><button type="button" class="primary" id="roll-pending">投掷所有未定属性</button></div></div>
+        <div class="stat-list" id="stat-list"></div>
+        <form class="inline-stat-form" id="new-stat-form"><input name="name" placeholder="自定义属性名" required><input name="notation" value="1d100" required><button type="submit">＋ 添加属性</button></form>
+
+        <div class="ability-divider"></div>
+        <div class="section-title"><h2>特殊特质</h2><span>导演添加或从自定义权重池抽取</span></div>
+        <div class="trait-list" id="trait-list"></div>
+        <form class="manual-trait-form" id="manual-trait-form"><input name="label" placeholder="特质名称" required><input name="description" placeholder="一句说明（可选）"><button type="submit">手动添加</button></form>
+        <form class="trait-pool-form" id="trait-pool-form">
+          <label>特质池<textarea name="options" rows="6" placeholder="敏锐 | 3&#10;固执 | 2&#10;幸运 | 1" required></textarea></label>
+          <div><label>抽取数量<input name="draw_count" type="number" value="1" min="1" max="100"></label><label class="check-label"><input name="replace" type="checkbox">允许重复抽取</label><button type="submit" class="primary">投骰抽取特质</button></div>
+        </form>
+      </section>
+
+      <section class="character-tab-panel" data-panel="memories" hidden>
+        <div class="memory-tab-head"><div><h2>{{ asset.name }}的记忆</h2><p>这是角色对事件的主观看法，并不等同于客观真相。</p></div><button type="button" id="generate-character-memories">从最新故事整理记忆</button></div>
+        <div class="memory-list character-memory-list" id="character-memory-list"></div>
+      </section>
+
+      <section class="character-tab-panel" data-panel="combat" hidden>
+        <div class="memory-tab-head"><div><h2>COC 7版战斗数据</h2><p>这里保存会变化的战斗状态；基础能力仍从属性卡读取。</p></div><button type="button" id="reset-coc-state">恢复到满生命</button></div>
+        <div class="coc-profile-summary" id="coc-profile-summary"></div>
+        <form class="coc-state-form" id="coc-state-form">
+          <label>生命上限<input name="max_hp" type="number" min="1" required></label>
+          <label>当前生命<input name="current_hp" type="number" min="0" required></label>
+          <label>护甲<input name="armor" type="number" min="0" value="0" required></label>
+          <label class="check-label"><input name="major_wound" type="checkbox">重伤</label>
+          <label class="check-label"><input name="unconscious" type="checkbox">昏迷</label>
+          <label class="check-label"><input name="dying" type="checkbox">濒死</label>
+          <label class="check-label"><input name="dead" type="checkbox">死亡</label>
+          <span></span><button type="submit" class="primary">保存战斗状态</button>
+        </form>
+        <p class="coc-rule-note">战斗面板会自动处理：DEX先攻、奖励/惩罚骰、闪避/反击平级规则、极难伤害、护甲、重伤与濒死。枪械的“扑向掩体”成功后会让射手承受惩罚骰，并失去下一次行动。</p>
+      </section>
+    </div>
+  </section>
+</div>
+<script id="character-data" type="application/json">{{ {'campaign': campaign, 'asset': asset, 'stats': stats, 'traits': traits, 'memories': memories, 'templates': templates, 'cocProfile': coc_profile}|tojson }}</script>
+{% endblock %}
+{% block scripts %}<script src="/static/character.js?v=0.7.0"></script>{% endblock %}

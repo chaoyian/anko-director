@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}存档 · Anko Director{% endblock %}
+{% block content %}
+<section class="page-content archive-page">
+  <header class="page-heading"><div><h1>存档</h1><p>一个存档包含故事、资产、骰表和 Discord 绑定。</p></div><button type="button" class="primary" id="show-create">＋ 新建故事</button></header>
+  <form id="new-campaign" class="inline-create" hidden>
+    <label>故事标题<input name="title" required maxlength="200" placeholder="例如：千早爱音的安科人生"></label>
+    <label>世界观或开场<textarea name="premise" rows="3" placeholder="可留空，之后再补"></textarea></label>
+    <div class="form-actions"><button type="button" id="cancel-create">取消</button><button type="submit" class="primary">创建并进入</button></div>
+  </form>
+  <div class="archive-grid">
+    {% for item in campaigns %}
+    <a class="archive-card" href="/campaigns/{{ item.id }}"><span class="archive-icon">▧</span><div><strong>{{ item.title }}</strong><p>{{ item.premise or '尚未设置世界观' }}</p><small>更新于 {{ item.updated_at[:16].replace('T', ' ') }}</small></div><span class="archive-arrow">→</span></a>
+    {% else %}
+    <div class="empty-state"><span>▧</span><strong>还没有故事存档</strong><p>创建第一局，从一条导演指令开始。</p></div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script>
+const createForm = document.querySelector('#new-campaign');
+document.querySelector('#show-create').addEventListener('click', () => { createForm.hidden = false; createForm.querySelector('input').focus(); });
+document.querySelector('#cancel-create').addEventListener('click', () => { createForm.hidden = true; });
+createForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const data = Object.fromEntries(new FormData(event.target));
+  const result = await api('/api/campaigns', {method:'POST', body:JSON.stringify(data)});
+  location.href = `/campaigns/${result.id}`;
+});
+</script>
+{% endblock %}

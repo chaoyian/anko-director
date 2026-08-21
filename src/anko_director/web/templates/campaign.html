@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}{{ campaign.title }} · Anko Director{% endblock %}
+{% block project_title %}{{ campaign.title }}{% endblock %}
+{% block content %}
+<div class="director-page">
+  <section class="director-left">
+    <section class="asset-board" aria-label="资产桌布">
+      <div class="canvas-viewport" id="canvas-viewport">
+        <div class="canvas-world" id="canvas-world"></div>
+      </div>
+      <div class="canvas-toolbar">
+        <strong>资产桌布</strong>
+        <div class="world-layers" aria-label="世界图层"><label><input type="checkbox" data-layer="assets" checked>资产</label><label><input type="checkbox" data-layer="relations" checked>关系</label><label><input type="checkbox" data-layer="statuses" checked>状态卡</label><label><input type="checkbox" data-layer="outcomes" checked>事件</label></div>
+        <select id="outcome-range" aria-label="事件显示范围"><option value="1">本回合</option><option value="3">最近 3 回</option><option value="10">最近 10 回</option><option value="all">全部事件</option></select>
+        <span class="toolbar-spacer"></span>
+        <button type="button" id="new-relation" title="先选中两个资产">＋ 关系</button>
+        <button type="button" id="zoom-out" aria-label="缩小">−</button><button type="button" id="zoom-reset">100%</button><button type="button" id="zoom-in" aria-label="放大">＋</button><button type="button" id="fit-assets">显示全部</button><button type="button" class="primary" id="new-asset">＋ 新资产</button>
+      </div>
+      <div class="history-notice" id="history-notice" hidden><strong></strong><span>历史快照只读；可引用内容，继续创作请先建立支线。</span></div>
+      <aside class="chapter-timeline" id="chapter-timeline" aria-label="故事章回">
+        <button type="button" class="chapter-pull" id="chapter-toggle" aria-expanded="false" aria-controls="chapter-drawer">
+          <span class="chapter-seal">章回</span>
+          <span class="chapter-pull-copy"><strong id="chapter-current">楔子</strong><small id="chapter-current-summary">导入基线</small></span>
+          <span class="chapter-pull-arrow" aria-hidden="true">›</span>
+        </button>
+        <section class="chapter-drawer" id="chapter-drawer" hidden>
+          <header>
+            <label><span>故事卷</span><select id="branch-select" aria-label="活动分支"></select></label>
+            <button type="button" id="timeline-latest">回到最新</button>
+          </header>
+          <div class="chapter-list" id="chapter-list" aria-label="章回目录"></div>
+          <footer>
+            <button type="button" id="timeline-prev" aria-label="上一章">← 上一章</button>
+            <button type="button" id="timeline-next" aria-label="下一章">下一章 →</button>
+            <span id="chapter-count"></span>
+            <button type="button" id="timeline-branch">从此另开一卷</button>
+          </footer>
+        </section>
+      </aside>
+      <span class="canvas-help">拖动画布 · 拖动资产 · 单击引用 · 双击打开 · 状态卡可直接拿掉</span>
+    </section>
+
+    <div class="story-resizer" id="story-resizer" role="separator" aria-label="调整资产桌布与故事区高度" aria-orientation="horizontal"><span></span></div>
+
+    <section class="story-flow">
+      <header class="story-head"><div><strong>故事流</strong><span id="turn-status">选择资产或直接输入</span></div><div class="story-actions"><a href="/campaigns/{{ campaign.id }}/memories">角色记忆</a><span>小模型解析 · Python 投骰 · 主模型写作</span></div></header>
+      <div class="story-scroll" id="story-scroll">
+        <div class="story-output" id="story-output"><p class="story-placeholder">{{ campaign.premise or '故事尚未开始。选择资产，然后输入导演指令。' }}</p></div>
+        <div class="turn-card" id="turn-card" hidden>
+          <div><strong id="turn-title">准备执行</strong><span id="turn-character"></span></div>
+          <p id="turn-explanation"></p><ul id="turn-items"></ul><div id="turn-warnings"></div>
+        </div>
+        <details class="evidence" id="roll-evidence" hidden><summary>查看投骰证据</summary><pre id="roll-evidence-content"></pre></details>
+      </div>
+      <div class="director-composer">
+        <section class="coc-panel" id="coc-panel" hidden>
+          <header><div><strong>COC 7版战斗</strong><span>本地规则裁定，不调用模型；结果会进入故事上下文</span></div><button type="button" id="close-coc-panel" aria-label="关闭COC战斗面板">×</button></header>
+          <div class="coc-roster" id="coc-roster"></div>
+          <form id="coc-combat-form">
+            <div class="coc-fields">
+              <label>攻击者<select name="attacker_asset_id" required></select></label>
+              <label>防御者<select name="defender_asset_id" required></select></label>
+              <label>行动<select name="attack_kind"><option value="melee">近战攻击</option><option value="firearm">枪械攻击</option><option value="maneuver">战技</option><option value="first_aid">急救 / 稳定</option></select></label>
+              <label>应对<select name="defense"><option value="dodge">闪避</option><option value="fight_back">反击</option><option value="none">不应对</option></select></label>
+              <label>武器<select name="weapon_preset"><option value="unarmed">徒手 · 1d3+DB</option><option value="knife">小刀 · 1d4+DB</option><option value="club">短棍 · 1d6+DB</option><option value="bat">球棒 · 1d8+DB</option><option value="handgun">手枪 · 1d10</option><option value="shotgun">霰弹枪近距 · 4d6</option><option value="custom">自定义</option></select></label>
+              <label>武器名<input name="weapon_name" value="徒手" required></label>
+              <label>伤害骰<input name="damage" value="1d3" required></label>
+              <label>攻击技能<input name="attack_skill" type="number" min="0" max="100" required></label>
+              <label>防御技能<input name="defense_skill" type="number" min="0" max="100" required></label>
+              <label>奖励/惩罚骰<select name="bonus_dice"><option value="2">2个奖励骰</option><option value="1">1个奖励骰</option><option value="0" selected>无</option><option value="-1">1个惩罚骰</option><option value="-2">2个惩罚骰</option></select></label>
+              <label>射击次数<input name="shots" type="number" min="1" max="3" value="1"></label>
+              <label class="maneuver-effect" hidden>战技效果<input name="maneuver_effect" placeholder="例如：夺下手枪"></label>
+            </div>
+            <div class="coc-options"><label class="check-label"><input name="use_damage_bonus" type="checkbox" checked>加入伤害加值</label><label class="check-label"><input name="impaling" type="checkbox">贯穿武器</label><label class="check-label"><input name="point_blank" type="checkbox">贴身射击</label><label class="check-label"><input name="outnumbered" type="checkbox">目标已应对过攻击</label></div>
+            <div class="coc-result" id="coc-result" hidden></div>
+            <footer><span id="coc-round">尚未开始战斗</span><button type="button" id="coc-next-round">下一轮</button><button type="submit" class="primary">立即裁定</button></footer>
+          </form>
+        </section>
+        <section class="dice-panel" id="dice-panel" hidden>
+          <header><div><strong>显式骰子面板</strong><span>这里建立的骰组不会调用小模型</span></div><button type="button" id="close-dice-panel" aria-label="关闭骰子面板">×</button></header>
+          <div class="quick-dice" aria-label="快速骰子"><button type="button" data-sides="4">d4</button><button type="button" data-sides="6">d6</button><button type="button" data-sides="8">d8</button><button type="button" data-sides="10">d10</button><button type="button" data-sides="12">d12</button><button type="button" data-sides="20">d20</button><button type="button" data-sides="100">d100</button></div>
+          <div class="dice-fields">
+            <label>人物<select id="dice-character"><option value="">命运 / 无人物</option></select></label>
+            <label>人物属性<select id="dice-stat"><option value="">自定义判定</option></select></label>
+            <label>判定名称<input id="dice-label" value="命运判定" maxlength="100"></label>
+            <label>骰数<input id="dice-count" type="number" value="1" min="1" max="100"></label>
+            <label>骰面<input id="dice-sides" type="number" value="100" min="2" max="100000"></label>
+            <label>修正<input id="dice-modifier" type="number" value="0" min="-1000000" max="1000000"></label>
+            <label>成功条件<select id="dice-comparison"><option value="">只看点数</option><option value="lte">点数 ≤ 目标</option><option value="gte">点数 ≥ 目标</option></select></label>
+            <label>目标值<input id="dice-target" type="number" placeholder="可选"></label>
+          </div>
+          <div class="dice-add-row"><label class="check-label"><input type="checkbox" id="dice-secret">暗骰</label><span></span><button type="button" id="add-dice-operation">＋ 加入骰组</button></div>
+          <div class="dice-tray" id="dice-tray"><p>骰组还是空的。点击上方骰子或“加入骰组”。</p></div>
+          <footer><label>连续次数<input id="dice-repeat" type="number" value="1" min="1" max="100"></label><label>执行方式<select id="dice-sequence-mode"><option value="batch">一次投完</option><option value="stepwise">逐次按 Enter</option></select></label><span></span><button type="button" id="clear-dice-tray">清空</button><button type="button" class="primary" id="use-dice-group">使用这个骰组</button></footer>
+        </section>
+        <div class="slash-menu" id="slash-menu" hidden><button type="button" data-command="dice"><strong>/骰子</strong><span>打开显式骰子面板</span></button><button type="button" data-command="continuous"><strong>/连续骰</strong><span>建立多次或分步投骰</span></button><button type="button" data-command="attribute"><strong>/属性骰</strong><span>选择已引用人物的属性</span></button><button type="button" data-command="coc"><strong>/COC战斗</strong><span>调用内建7版战斗规则</span></button></div>
+        <div class="asset-chips" id="asset-chips"></div>
+        <div class="composer-tools"><button type="button" id="open-dice-panel">🎲 骰子</button><button type="button" id="open-coc-panel">⚔ COC战斗</button><span id="explicit-dice-badge" hidden></span><label class="check-label keep-assets"><input type="checkbox" id="keep-asset-references">连续创作时保持引用</label></div>
+        <label><textarea id="director-input" rows="4" placeholder="用自然语言描述；输入 / 调用骰子面板，Enter 确认"></textarea><span class="enter-key" id="enter-key">Enter 解析</span></label>
+      </div>
+    </section>
+  </section>
+
+  <aside class="chat-panel">
+    <header class="chat-head"><div><span>#</span><strong>{{ campaign.title }}</strong></div><span class="chat-mode {{ 'online' if discord_ready and campaign.discord_thread_id else '' }}">{% if campaign.discord_thread_id %}{{ '● Discord 实时' if discord_ready else '○ Discord 待连接' }}{% else %}本地对话{% endif %}</span></header>
+    {% if not campaign.discord_thread_id %}
+    <form id="discord-bind" class="discord-bind"><strong>连接 Discord 帖子</strong><label>论坛频道 ID<input name="forum_channel_id" inputmode="numeric" required placeholder="1234567890"></label><label>帖子标题<input name="post_name" value="{{ campaign.title }}" required maxlength="100"></label><button type="submit">创建并绑定</button></form>
+    {% endif %}
+    <div class="chat-feed" id="chat-feed"></div>
+    <form class="chat-composer" id="chat-form"><textarea name="content" rows="4" required placeholder="{% if campaign.discord_thread_id %}发送到 Discord 帖子{% else %}与 Anko Bot 讨论，不写入正史{% endif %}"></textarea><span>Enter 发送 · Shift+Enter 换行</span></form>
+  </aside>
+</div>
+
+<div class="modal-layer" id="asset-modal" hidden>
+  <form class="asset-editor" id="asset-form">
+    <header><div><strong id="asset-modal-title">新资产</strong><span>完整内容会在引用时交给 AI</span></div><button type="button" id="close-asset" aria-label="关闭">×</button></header>
+    <input type="hidden" name="id">
+    <div class="editor-row"><label>名称<input name="name" required maxlength="200"></label><label>类型<select name="kind"><option value="character">角色</option><option value="scene">场景</option><option value="prop">道具</option><option value="rule">规则</option></select></label><label>颜色<input name="color" type="color" value="#d89469"></label></div>
+    <label>摘要<input name="summary" maxlength="2000" placeholder="卡片上显示的一句话"></label>
+    <label>正文<textarea name="body" rows="10" placeholder="人物设定、场景事实、规则说明……"></textarea></label>
+    <section class="derived-facts" id="derived-facts" hidden><strong>投骰生成事实</strong><dl id="derived-facts-list"></dl></section>
+    <footer><button type="button" class="danger-quiet" id="archive-asset" hidden>归档资产</button><span></span><button type="button" id="cancel-asset">取消</button><button type="submit" class="primary">保存修改</button></footer>
+  </form>
+</div>
+
+<div class="modal-layer" id="status-modal" hidden>
+  <form class="asset-editor compact-editor" id="status-form">
+    <header><div><strong id="status-modal-title">添加状态卡</strong><span>卡片会直接叠放在人物资产下方</span></div><button type="button" data-close-status aria-label="关闭">×</button></header>
+    <input type="hidden" name="id">
+    <label>对象<select name="target_asset_id" required></select></label>
+    <label>持续回合<input name="duration_turns" type="number" min="1" placeholder="留空表示永久"></label>
+    <label>说明<textarea name="description" rows="4" required maxlength="2000" placeholder="例如：左臂负伤，精细动作受限"></textarea></label>
+    <footer><span></span><button type="button" data-close-status>取消</button><button type="submit" class="primary">保存状态卡</button></footer>
+  </form>
+</div>
+
+<div class="modal-layer" id="relation-modal" hidden>
+  <form class="asset-editor compact-editor" id="relation-form">
+    <header><div><strong id="relation-modal-title">建立关系</strong><span>箭头从起点指向终点</span></div><button type="button" data-close-relation aria-label="关闭">×</button></header>
+    <input type="hidden" name="id">
+    <div class="relation-editor-row"><label>起点<select name="source_asset_id" required></select></label><span>→</span><label>终点<select name="target_asset_id" required></select></label></div>
+    <label>关系名<input name="label" required maxlength="100" placeholder="例如：信任、追踪、持有"></label>
+    <label>说明<textarea name="description" rows="3" maxlength="2000"></textarea></label>
+    <footer><button type="button" class="danger-quiet" id="delete-relation" hidden>结束关系</button><span></span><button type="button" data-close-relation>取消</button><button type="submit" class="primary">保存关系</button></footer>
+  </form>
+</div>
+
+<script id="campaign-data" type="application/json">{{ {
+  'campaign': campaign,
+  'assets': assets,
+  'characterStats': character_stats,
+  'canvasView': canvas_view,
+  'statusCards': status_cards,
+  'relations': relations,
+  'outcomes': outcomes,
+  'timeline': timeline,
+  'messages': chat_messages,
+  'cocProfiles': coc_profiles,
+  'discordReady': discord_ready
+}|tojson }}</script>
+{% endblock %}
+{% block scripts %}<script src="/static/campaign.js?v=0.7.0-chapters"></script>{% endblock %}

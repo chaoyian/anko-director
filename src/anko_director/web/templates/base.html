@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Anko Director{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css?v=0.7.0-chapters">
+</head>
+<body>
+  <div class="app-frame">
+    <header class="titlebar">
+      <span class="window-mark" aria-hidden="true">AN</span>
+      <strong>{% block project_title %}Anko Director{% endblock %}</strong>
+      <span class="titlebar-center">Anko Director</span>
+      <span class="save-state"><i></i> 本地已保存</span>
+    </header>
+    <div class="app-body">
+      <nav class="activity-bar" aria-label="主要页面">
+        <a href="/" class="activity-item {{ 'active' if active_page == 'archive' else '' }}" aria-label="存档"><span>▤</span><small>存档</small></a>
+        {% if campaign is defined %}
+        <a href="/campaigns/{{ campaign.id }}" class="activity-item {{ 'active' if active_page == 'create' else '' }}" aria-label="创作"><span>◫</span><small>创作</small></a>
+        {% else %}
+        <span class="activity-item disabled" aria-label="先选择存档"><span>◫</span><small>创作</small></span>
+        {% endif %}
+        <a href="/settings" class="activity-item settings {{ 'active' if active_page == 'settings' else '' }}" aria-label="设置"><span>⚙</span><small>设置</small></a>
+      </nav>
+      <main class="page-shell">{% block content %}{% endblock %}</main>
+    </div>
+  </div>
+  <div id="toast" class="toast" hidden></div>
+  <script src="/static/app.js?v=0.7.0"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

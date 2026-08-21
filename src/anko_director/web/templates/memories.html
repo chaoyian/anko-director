@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}角色记忆 · {{ campaign.title }}{% endblock %}
+{% block project_title %}{{ campaign.title }}{% endblock %}
+{% block content %}
+<div class="page-content memory-page">
+  <header class="page-heading">
+    <div><a class="back-link" href="/campaigns/{{ campaign.id }}">← 返回故事桌布</a><h1>角色记忆</h1><p>同一段剧情会为每个涉及人物保存不同的主观理解；只在该人物被引用时交给故事模型。</p></div>
+    <button type="button" class="primary" id="generate-memories">从最新故事生成记忆</button>
+  </header>
+  <nav class="memory-filter" id="memory-filter"><button class="active" data-owner="">全部人物</button>{% for character in characters %}<button data-owner="{{ character.id }}">{{ character.name }}</button>{% endfor %}</nav>
+  <div class="memory-list" id="memory-list"></div>
+</div>
+<script id="memory-data" type="application/json">{{ {'campaign': campaign, 'characters': characters, 'memories': memories}|tojson }}</script>
+{% endblock %}
+{% block scripts %}<script src="/static/memories.js?v=0.7.0"></script>{% endblock %}
