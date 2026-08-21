@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 import re
 import sys
 import tomllib
@@ -61,7 +60,7 @@ def check(tag: str | None = None) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Verify release version consistency")
-    parser.add_argument("--tag", default=os.getenv("GITHUB_REF_NAME"))
+    parser.add_argument("--tag")
     args = parser.parse_args()
     try:
         version = check(args.tag)
