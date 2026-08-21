@@ -42,7 +42,7 @@ jobs:
       - name: Archive and checksum
         run: uv run --frozen --no-editable python scripts/package_release.py --platform ${{ matrix.platform }}
       - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: anko-director-${{ matrix.platform }}
           path: release/*
@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           path: release
           merge-multiple: true
